@@ -11,6 +11,7 @@ import burlap.behavior.singleagent.learning.tdmethods.QLearning;
 import burlap.behavior.singleagent.planning.OOMDPPlanner;
 import burlap.behavior.singleagent.planning.QComputablePlanner;
 import burlap.behavior.singleagent.planning.StateConditionTest;
+import burlap.behavior.singleagent.planning.commonpolicies.BoltzmannQPolicy;
 import burlap.behavior.singleagent.planning.commonpolicies.GreedyQPolicy;
 import burlap.behavior.singleagent.planning.deterministic.DeterministicPlanner;
 import burlap.behavior.singleagent.planning.deterministic.SDPlannerPolicy;
@@ -53,10 +54,56 @@ public class BlockWorldTest {
         BlockWorldTest rpt = new BlockWorldTest();
         String outputPath = "output"; //directory to record results
 
-        //rpt.BFSExample(outputPath);
-        //rpt.ValueIterationExample(outputPath);
-        //rpt.PolicyIterationExample(outputPath);
-        rpt.QLearningExample(outputPath);
+        System.out.println("\nValue Iteration (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        rpt.ValueIterationExample(outputPath, 0.7);
+
+        System.out.println("\nValue Iteration (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        rpt.ValueIterationExample(outputPath, 0.8);
+
+        System.out.println("\nValue Iteration (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        rpt.ValueIterationExample(outputPath, 0.9);
+
+        System.out.println("\nValue Iteration (Gamma=0.99)");
+        System.out.println("----------------------------\n");
+        rpt.ValueIterationExample(outputPath, 0.99);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        rpt.PolicyIterationExample(outputPath, 0.7);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        rpt.PolicyIterationExample(outputPath, 0.8);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        rpt.PolicyIterationExample(outputPath, 0.9);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.99)");
+        System.out.println("----------------------------\n");
+        rpt.PolicyIterationExample(outputPath, 0.99);
+
+        System.out.println("\nQ-Learning Iteration (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        rpt.QLearningExample(outputPath, 0.7);
+
+        System.out.println("\nQ-Learning Iteration (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        rpt.QLearningExample(outputPath, 0.8);
+
+        System.out.println("\nQ-Learning Iteration (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        rpt.QLearningExample(outputPath, 0.9);
+
+        System.out.println("\nQ-Learning Iteration (Gamma=0.99)");
+        System.out.println("----------------------------\n");
+        rpt.QLearningExample(outputPath, 0.99);
+
+        //rpt.PolicyIterationExample(outputPath, 0.99);
+        //rpt.QLearningExample(outputPath, 0.99);
 
         rpt.visualize(outputPath);
 
@@ -106,33 +153,46 @@ public class BlockWorldTest {
 
     }
 
-    public void ValueIterationExample(String outputPath){
+    public void ValueIterationExample(String outputPath, double gamma){
 
         if(!outputPath.endsWith("/")){
             outputPath = outputPath + "/";
         }
 
+        double start = System.nanoTime(), end = 0, runTime = 0;
 
         //Value iteration computing for discount=0.99 with stopping criteria either being a maximum change in value less then 0.001 or 100 passes over the state space (which ever comes first)
-        OOMDPPlanner planner = new ValueIteration(domain, rf, tf, 0.99, hashingFactory, 0.001, 100);
+        OOMDPPlanner planner = new ValueIteration(domain, rf, tf, gamma, hashingFactory, 0.001, 100);
         planner.planFromState(initialState);
 
+        end = System.nanoTime();
+        runTime = end - start;
+
+        runTime = runTime/10e9;
+        System.out.println("Planner VI time: " + runTime);
+
+        start = System.nanoTime();
         //create a Q-greedy policy from the planner
         Policy p = new GreedyQPolicy((QComputablePlanner)planner);
 
         //record the plan results to a file
         p.evaluateBehavior(initialState, rf, tf).writeToFile(outputPath + "planResult", sp);
+        end = System.nanoTime();
+        runTime = end - start;
+
+        runTime = runTime/10e9;
+        System.out.println("VI greedy evaluation time: " + runTime);
 
     }
 
-    public void PolicyIterationExample(String outputPath) {
+    public void PolicyIterationExample(String outputPath, double gamma) {
 
         if(!outputPath.endsWith("/")){
             outputPath = outputPath + "/";
         }
 
         double start = System.nanoTime(), end = 0, evalTime = 0;
-        OOMDPPlanner planner = new PolicyIteration(domain, rf, tf, 0.5, hashingFactory, 0.001, 100, 1000);
+        OOMDPPlanner planner = new PolicyIteration(domain, rf, tf, gamma, hashingFactory, 0.001, 100, 1000);
         planner.planFromState(initialState);
         end = System.nanoTime();
         evalTime = end - start;
@@ -156,7 +216,7 @@ public class BlockWorldTest {
         }
         System.out.println("Unique states in policy PI: "+ uniqueStates.size());
         System.out.println("PI time: " + evalTime);
-        System.out.println("Discount reward PI: " + analysis.getDiscountedReturn(0.99));
+        System.out.println("Discount reward PI: " + analysis.getDiscountedReturn(gamma));
         double totalReward = 0;
 
         for( double r : analysis.rewardSequence)
@@ -168,14 +228,15 @@ public class BlockWorldTest {
         //this.visualizePolicy((QComputablePlanner) planner, p);
     }
 
-    public void QLearningExample(String outputPath){
+    public void QLearningExample(String outputPath, double gamma){
 
         if(!outputPath.endsWith("/")){
             outputPath = outputPath + "/";
         }
 
+        double start = System.nanoTime(), end = 0, evalTime = 0;
         //creating the learning algorithm object; discount= 0.99; initialQ=0.0; learning rate=0.9
-        LearningAgent agent = new QLearning(domain, rf, tf, 0.99, hashingFactory, 0., 0.9);
+        LearningAgent agent = new QLearning(domain, rf, tf, gamma, hashingFactory, 0., 0.9);
 
         //run learning for 100 episodes
         for(int i = 0; i < 200; i++){
@@ -183,6 +244,39 @@ public class BlockWorldTest {
             ea.writeToFile(String.format("%se%03d", outputPath, i), sp); //record episode to a file
             System.out.println(i + ": " + ea.numTimeSteps()); //print the performance of this episode
         }
+
+        end = System.nanoTime();
+        evalTime = end - start;
+        evalTime /= Math.pow(10, 9);
+        System.out.println("Q Learning time: " + evalTime);
+        start = System.nanoTime();
+
+//        Policy p = new GreedyQPolicy((QComputablePlanner)((QLearning)agent));
+        Policy p = new BoltzmannQPolicy((QComputablePlanner)((QLearning)agent), 10);
+
+        EpisodeAnalysis analysis = p.evaluateBehavior(initialState, rf, tf);
+        end = System.nanoTime();
+        evalTime = end - start;
+        evalTime /= Math.pow(10, 9);
+        System.out.println("Q-Learning Eval time: " + evalTime);
+        LinkedList<State> uniqueStates = new LinkedList<State>();
+        System.out.println("Number of states to termination Q-Learning:" + analysis.stateSequence.size());
+        for(State s : analysis.stateSequence)
+        {
+            if(!uniqueStates.contains(s))
+                uniqueStates.add(s);
+        }
+        System.out.println("Unique states in Q-Learning: "+ uniqueStates.size());
+        System.out.println("Q time: " + evalTime);
+        System.out.println("Discount reward Q: " + analysis.getDiscountedReturn(0.99));
+        double totalReward = 0;
+
+        for( double r : analysis.rewardSequence)
+        {
+            totalReward += r;
+        }
+        System.out.println("Total reward Q-Learning: " + totalReward);
+        analysis.writeToFile(outputPath + "planResult", sp);
 
     }
 
@@ -195,8 +289,8 @@ public class BlockWorldTest {
             gps = new ArrayList<GroundedProp>();
             gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block0", "block1"}));
             gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block2", "block0"}));
-            gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block4", "block2"}));
-            gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block3", "block5"}));
+            gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block3", "block4"}));
+            gps.add(new GroundedProp(domain.getPropFunction(BlocksWorld.PFONBLOCK), new String[]{"block4", "block5"}));
         }
 
         @Override

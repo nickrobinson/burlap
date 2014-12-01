@@ -22,6 +22,7 @@ import burlap.behavior.singleagent.learning.tdmethods.QLearning;
 import burlap.behavior.singleagent.planning.OOMDPPlanner;
 import burlap.behavior.singleagent.planning.QComputablePlanner;
 import burlap.behavior.singleagent.planning.StateConditionTest;
+import burlap.behavior.singleagent.planning.commonpolicies.BoltzmannQPolicy;
 import burlap.behavior.singleagent.planning.commonpolicies.GreedyQPolicy;
 import burlap.behavior.singleagent.planning.deterministic.TFGoalCondition;
 import burlap.behavior.singleagent.planning.stochastic.policyiteration.PolicyIteration;
@@ -29,6 +30,7 @@ import burlap.behavior.singleagent.planning.stochastic.valueiteration.ValueItera
 import burlap.behavior.statehashing.DiscreteStateHashFactory;
 import burlap.domain.singleagent.gridworld.GridWorldDomain;
 import burlap.domain.singleagent.gridworld.GridWorldStateParser;
+import burlap.domain.singleagent.gridworld.GridWorldVisualizer;
 import burlap.oomdp.auxiliary.StateGenerator;
 import burlap.oomdp.auxiliary.StateParser;
 import burlap.oomdp.auxiliary.common.ConstantStateGenerator;
@@ -39,6 +41,7 @@ import burlap.oomdp.singleagent.RewardFunction;
 import burlap.oomdp.singleagent.SADomain;
 import burlap.oomdp.singleagent.common.SinglePFTF;
 import burlap.oomdp.singleagent.common.UniformCostRF;
+import burlap.oomdp.singleagent.common.VisualActionObserver;
 
 public class Maze {
     private static final boolean POLICY_VIS_ON = true;
@@ -97,9 +100,63 @@ public class Maze {
         Maze testMaze = new Maze();
         String outputFolder = "output/"; //directory to record results
 
-        //testMaze.testValueIteration(outputFolder, 0.99);
-        //testMaze.testPolicyIteration(outputFolder, 0.5);
+        System.out.println("\nValue Iteration (Gamma=0.99)");
+        System.out.println("----------------------------\n");
+        testMaze.testValueIteration(outputFolder, 0.99);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.99)");
+        System.out.println("----------------------------\n");
+        testMaze.testPolicyIteration(outputFolder, 0.99);
+
+        System.out.println("\nQ-Learning (Gamma=0.99)");
+        System.out.println("----------------------------\n");
         testMaze.testQLearning(outputFolder, 0.99);
+
+
+        System.out.println("\nValue Iteration (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        testMaze.testValueIteration(outputFolder, .9);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        testMaze.testPolicyIteration(outputFolder, .9);
+
+        System.out.println("\nQ-Learning (Gamma=0.9)");
+        System.out.println("----------------------------\n");
+        testMaze.testQLearning(outputFolder, 0.9);
+//
+        System.out.println("\nValue Iteration (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        testMaze.testValueIteration(outputFolder, 0.8);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        testMaze.testPolicyIteration(outputFolder, 0.8);
+
+        System.out.println("\nQ-Learning (Gamma=0.8)");
+        System.out.println("----------------------------\n");
+        testMaze.testQLearning(outputFolder, 0.8);
+//
+        System.out.println("\nValue Iteration (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        testMaze.testValueIteration(outputFolder, 0.7);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        testMaze.testPolicyIteration(outputFolder, 0.7);
+
+        System.out.println("\nQ-Learning (Gamma=0.7)");
+        System.out.println("----------------------------\n");
+        testMaze.testQLearning(outputFolder, 0.7);
+//
+        System.out.println("\nValue Iteration (Gamma=0.6)");
+        System.out.println("----------------------------\n");
+        testMaze.testValueIteration(outputFolder, 0.6);
+
+        System.out.println("\nPolicy Iteration (Gamma=0.6)");
+        System.out.println("----------------------------\n");
+        testMaze.testPolicyIteration(outputFolder, 0.6);
+
     }
 
     public void visualizePolicy(QComputablePlanner planner, Policy p){
@@ -273,7 +330,8 @@ public class Maze {
         evalTime /= Math.pow(10, 9);
         System.out.println("Q Learning time: " + evalTime);
         start = System.nanoTime();
-        Policy p = new GreedyQPolicy((QComputablePlanner)((QLearning)agent));
+        //Policy p = new GreedyQPolicy((QComputablePlanner)((QLearning)agent));
+        Policy p = new BoltzmannQPolicy((QComputablePlanner)((QLearning)agent), 10);
 
         EpisodeAnalysis analysis = p.evaluateBehavior(initialState, rf, tf);
         end = System.nanoTime();
@@ -300,7 +358,7 @@ public class Maze {
         analysis.writeToFile(outputPath + "planResult", sp);
         if(POLICY_VIS_ON)
         {
-            this.visualizePolicy((QComputablePlanner) ((QLearning) agent), p);
+            //this.visualizePolicy((QComputablePlanner) ((QLearning) agent), p);
             this.qLearningPlotter();
         }
     }
